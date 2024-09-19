@@ -31,6 +31,24 @@ class ChatViewController: UIViewController {
         navigationItem.hidesBackButton = true
         
         tableView.register(UINib(nibName: K.cellNibName, bundle: nil), forCellReuseIdentifier: K.cellIdentifier)
+        
+        loadMessage()
+    }
+    
+    func loadMessage() {
+        db.collection(K.FStore.collectionName).getDocuments { querySnapshot, error in
+            if error != nil{
+                print("Fail to get data. \(error!)")
+            }
+            else if let snapshot = querySnapshot{
+                for document in snapshot.documents {
+                    print("\(document.documentID) => \(document.data())")
+                }
+            }
+            else {
+                print("Data is nil")
+            }
+        }
     }
     
     @IBAction func sendPressed(_ sender: UIButton) {
