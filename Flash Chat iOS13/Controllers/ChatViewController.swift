@@ -13,11 +13,7 @@ import FirebaseFirestore
 
 class ChatViewController: UIViewController {
     
-    var messages : [Message] = [
-        Message(sender: "abc@drf.ghi", message: "Heyyyy"),
-        Message(sender: "123@456.789", message: "HelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHelloHello"),
-        Message(sender: "ccdtruong", message: "How r u?")
-    ]
+    var messages : [Message] = []
 
     let db = Firestore.firestore()
     
@@ -36,27 +32,40 @@ class ChatViewController: UIViewController {
     }
     
     func loadMessage() {
-        db.collection(K.FStore.collectionName).getDocuments { querySnapshot, error in
+        db.collection(K.FStore.collectionName)
+            .order(by: K.FStore.dateField)
+            .addSnapshotListener() { querySnapshot, error in
             if error != nil{
                 print("Fail to get data. \(error!)")
             }
             else if let snapshot = querySnapshot{
+                self.messages.removeAll()
                 for document in snapshot.documents {
-                    print("\(document.documentID) => \(document.data())")
+                    if let messageSender = document[K.FStore.senderField] as? String, let message = document[K.FStore.messageField] as? String {
+                        let newMessage = Message(sender: messageSender, message: message)
+                        self.messages.append(newMessage)
+                    }
                 }
             }
             else {
                 print("Data is nil")
             }
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
         }
     }
     
     @IBAction func sendPressed(_ sender: UIButton) {
+        if messageTextfield.text == "" {
+            return
+        }
         if let messageSender = Auth.auth().currentUser?.email, let message = messageTextfield.text {
             
             db.collection(K.FStore.collectionName).addDocument(data: [
                 K.FStore.senderField: messageSender,
-                K.FStore.messageField: message
+                K.FStore.messageField: message,
+                K.FStore.dateField: Date().timeIntervalSince1970
             ]) { error in
                 if error != nil {
                     print("Fail to save data to firestore with error : \(error!)")
